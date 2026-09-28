@@ -23,9 +23,9 @@ import (
 
 // hubRepo is one repository mounted in a workspace hub.
 type hubRepo struct {
-	Name  string `json:"name"`  // unique, URL-safe display name
-	Root  string `json:"root"`  // absolute workspace root
-	Path  string `json:"path"`  // base path it is served under, e.g. /r/backend/
+	Name  string `json:"name"` // unique, URL-safe display name
+	Root  string `json:"root"` // absolute workspace root
+	Path  string `json:"path"` // base path it is served under, e.g. /r/backend/
 	srv   *Server
 	ix    *Index
 	lsp   *lspManager
@@ -87,6 +87,10 @@ func newWorkspaceHub(roots []string, basePath string, useLSP bool, agentCmd stri
 		ix := NewIndex(root)
 		lsp := newLSPManager(root, useLSP)
 		srv := NewServer(ix, lsp, bp)
+		// sessionFilePath keys on a non-root base path, so every workspace with
+		// a repo named "app" would share r_app.json. Key on the root instead,
+		// exactly like a single-repo run of the same directory.
+		srv.session = newSessionManager("/", root)
 		r := &hubRepo{Name: names[i], Root: root, Path: bp, srv: srv, ix: ix, lsp: lsp}
 		if !noAgent {
 			a, err := newAgentManager(root, agentCmd, lsp)

@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -66,5 +67,67 @@ func TestWorkspaceHubRouting(t *testing.T) {
 	json.Unmarshal(rec.Body.Bytes(), &list)
 	if len(list.Repos) != 2 {
 		t.Fatalf("workspace list = %s", rec.Body.String())
+	}
+}
+
+func TestWorkspaceHubBasePath(t *testing.T) {
+	var roots []string
+	for _, n := range []string{"frontend", "backend"} {
+		d := filepath.Join(t.TempDir(), n)
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		roots = append(roots, d)
+	}
+	h, err := newWorkspaceHub(roots, "/x/", false, "", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/x/", nil))
+	if rec.Code != http.StatusFound || rec.Header().Get("Location") != "/x/r/frontend/" {
+		t.Fatalf("GET /x/ = %d %q", rec.Code, rec.Header().Get("Location"))
+	}
+
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/x/r/backend/", nil))
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `<base href="/x/r/backend/">`) {
+		t.Fatalf("GET /x/r/backend/ = %d, missing base href", rec.Code)
+	}
+
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/x/api/workspace/list", nil))
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"path":"/x/r/backend/"`) {
+		t.Fatalf("GET /x/api/workspace/list = %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestWorkspaceHubSessionKeyedByRoot(t *testing.T) {
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	var roots []string
+	for _, parent := range []string{t.TempDir(), t.TempDir()} {
+		d := filepath.Join(parent, "app")
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		roots = append(roots, d)
+	}
+	// Two separate workspaces that each mount a repo at /r/app/ must not
+	// share session state.
+	a, err := newWorkspaceHub(roots[:1], "/", false, "", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := newWorkspaceHub(roots[1:], "/", false, "", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pa, pb := a.repos[0].srv.session.path, b.repos[0].srv.session.path
+	if pa == pb {
+		t.Fatalf("session files collide: %s", pa)
+	}
+	if want := sessionFilePath("/", roots[0]); pa != want {
+		t.Errorf("session path = %s, want %s", pa, want)
 	}
 }
