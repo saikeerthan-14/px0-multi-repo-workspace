@@ -25,6 +25,7 @@ This directory provides comprehensive documentation for all px0 user-facing feat
 | **Themes & Styling** | Settings / Palette | 14 built-in dark and light themes powered by CSS tokens | [Themes & Styling](themes-and-styling.md) |
 | **Selection Actions** | `Alt+C`, `Alt+A`, `Alt+U` | Copy reference, format LLM context, find usages, and edit | [Selection Actions](selection-actions.md) |
 | **Virtualized Scroller** | Automatic | Virtual DOM rendering ~60 rows with idle memory scavenging | [Editor Virtualization](editor-virtualization.md) |
+| **Multi-Repository Workspaces** | `px0 <dir> <dir> ...` | Open several repositories in one session and switch between them from the sidebar header | [Multi-Repository Workspaces](workspaces.md) |
 | **Remote Workspaces** | CLI flags | Zero-config remote browsing over Tailscale, SSH-free operation | [Remote Workspaces](remote-workspaces.md) |
 | **Vim Keybindings** | Toggle in Settings | Modal normal, visual, and motion modes for keyboard navigation | [Vim Mode](vim-mode.md) |
 | **File Explorer** | `Cmd/Ctrl+B` | High-density tree, expand/collapse-all controls, compact folder chains, and tab management | [File Explorer](file-explorer.md) |
@@ -95,4 +96,5 @@ px0 adapts to developer habits and viewing environments without requiring manual
 Engineered from the ground up for instantaneous response times and zero-friction remote usage:
 
 - **[Editor Virtualization & Memory Scavenging](editor-virtualization.md)**: Handles 500,000-line files effortlessly by rendering only ~60 visible rows in the browser DOM. Automatically releases memory back to the operating system after 15 seconds of inactivity.
+- **[Multi-Repository Workspaces](workspaces.md)**: Pass several directories (`px0 ~/work/mobile ~/work/frontend ~/work/backend`) to open them side by side in one px0 process. Each repository keeps its own index, git panel, language servers, and harness, and a switcher in the sidebar header moves between them.
 - **[Remote Workspaces & Cloud Inspection](remote-workspaces.md)**: Run px0 on remote servers, cloud VMs, Docker containers, or CI runners and view code in your local browser over Tailscale or private networks without SSH keys, port forwarding setups, or remote desktop daemons.

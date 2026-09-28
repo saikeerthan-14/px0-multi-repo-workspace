@@ -61,6 +61,18 @@ When hosted behind reverse proxies or multi-tenant review platforms, px0 support
 - `handleIndex` dynamically injects `<base href="/<base-path>/">` into `web/index.html`, allowing the frontend to resolve relative assets and API endpoints without domain-level assumptions.
 - Requests to `/<base-path>` without a trailing slash redirect to `/<base-path>/`, and root `/` redirects to the configured base path.
 
+### Multi-Repository Workspace Hub
+
+`px0 <dir> <dir> ...` (more than one directory, no PR URL) takes a separate branch in `main()` and builds a `workspaceHub` ([`workspace.go`](../../workspace.go)) instead of a single `Server`. The hub does not thread a "current repository" through the handlers. It mounts one unmodified `*Server` per repository under its own base path and reuses the base-path support described above:
+
+- Each root gets a unique, URL-safe slug from `uniqueRepoNames` (`My Backend` → `my-backend`; a second `app` becomes `app-2`). It is served under `<base>r/<slug>/`, where `<base>` is `-base-path` or `server.basePath`, or `/` when neither is set. Each mount has its own `Index`, `lspManager`, `GitWatcher`, and `agentManager`, so path sandboxing, git, LSP, search, and harness dispatch are scoped to one root exactly as in a single-repo run.
+- The hub's own `http.ServeMux` routes `<base>r/<slug>/` (and the slash-less form) to that repository's `Server`. The `Server` registers its routes with the full prefix, so no `StripPrefix` is needed. `<base>` itself redirects (302) to the first repository and keeps the query string. Any other path under `<base>` returns 404.
+- `GET <base>api/workspace/list` returns `{repos: [{name, root, path, files, ready, gitChanges}]}`. It sits outside every repository's base path and powers the sidebar switcher in [`web/src/workspace.js`](../../web/src/workspace.js).
+- Sessions (`/api/session`) are keyed on the repository root, the same way a single-repo run keys them. `sessionFilePath` would otherwise key on the non-root base path, and every workspace with a repository named `app` would share `r_app.json`.
+- `hub.Build()` indexes the repositories one after another in the background. `hub.Close()` shuts down every repository's language servers and cancels its harness jobs.
+
+Single-repo runs, PR URLs, and file targets never build a hub, so their routing and responses are unchanged. Search, quick-open, and the file tree are scoped to one repository at a time, and switching repositories reloads the page.
+
 ### Endpoints Reference
 
 | Endpoint              | Method | Purpose                                                                 | Response Format                            |

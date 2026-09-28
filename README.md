@@ -59,6 +59,9 @@ px0
 px0 ~/workspace/project
 px0 main.go:42
 
+# Open several repositories in one workspace (switch between them in the sidebar)
+px0 ~/work/mobile ~/work/frontend ~/work/backend
+
 # Review a GitHub pull request
 px0 https://github.com/owner/repo/pull/123
 
